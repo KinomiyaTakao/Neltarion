@@ -20104,107 +20104,69 @@ void Unit::ExitVehicle(Position const* exitPosition /*= NULL*/)
 
 void Unit::_ExitVehicle()
 {
-    if (!this)
-        return;
     /// It's possible m_vehicle is NULL, when this function is called indirectly from @VehicleJoinEvent::Abort.
     /// In that case it was not possible to add the passenger to the vehicle. The vehicle aura has already been removed
     /// from the target in the aforementioned function and we don't need to do anything else at this point.
     if (!m_vehicle)
         return;
 
-    Position exit_to{ *this };
+    Vehicle* vehicle = m_vehicle;
 
-    if (auto  vehicle = GetVehicle())
-    {
+    Position pos;
+    if (Position const* exitPosition = vehicle->GetExitPosition(this))
+        pos = *exitPosition;
+    else                                       // Exit position not specified
+        vehicle->GetBase()->GetPosition(&pos); // This should use passenger's current position, leaving it as it is now
+                                               // because we calculate positions incorrect (sometimes under map)
 
-        if (auto exitPosition = vehicle->GetExitPosition(this))
-            exit_to = *exitPosition;
+    m_vehicle->RemovePassenger(this);
 
-        m_vehicle->RemovePassenger(this);
+    Player* player = ToPlayer();
 
+    // If player is on mouted duel and exits the mount should immediatly lose the duel
+    if (player && player->duel && player->duel->isMounted)
+        player->DuelComplete(DUEL_FLED);
 
-        if (Player* player = ToPlayer())
-        {
-            player->ResetFallingData(GetPositionZ());
-            player->SetUnderACKmount();
-            player->SetSkipOnePacketForASH(true);
-
-            // If player is on mouted duel and exits the mount should immediatly lose the duel
-            if (player->duel && player->duel->isMounted)
-                player->DuelComplete(DUEL_FLED);
-
-            player->ResetFallingData(GetPositionZ());
-
-        }
-
-
-
-        // Wondi: Changed from 1 to 2000 because a vehicle could NOT execute events when player (owner) left a vehicle
-
-
-        if (auto vUnit = vehicle->GetBase())
-        {
-            if (vUnit->GetTypeId() == TYPEID_UNIT)
-                if (vUnit->HasUnitTypeMask(UNIT_MASK_MINION))
-                    if (auto vMinion = ((Minion*)vUnit))
-                        if (auto vOwner = vMinion->GetOwner())
-                            if (vOwner == this)
-                                if (auto vCreature = vUnit->ToCreature())
-                                    vCreature->DespawnOrUnsummon(2000);
-
-            if (HasUnitTypeMask(UNIT_MASK_ACCESSORY))
-            {
-                // Vehicle just died, we die too
-                if (vUnit->getDeathState() == JUST_DIED)
-                    setDeathState(JUST_DIED);
-                else
-                    ToTempSummon()->UnSummon(2100); // Approximation
-            }
-        }
-
-    }
-    else
-        RemoveAurasByType(SPELL_AURA_CONTROL_VEHICLE);
-
-    // because we calculate positions incorrect (sometimes under map)
-
-
+    // This should be done before dismiss, because there may be some aura removal
     m_vehicle = NULL;
-    /*
-    We're done with the vehicle.
-    */
-    float height = exit_to.GetPositionZ();
 
+    SetControlled(false, UNIT_STATE_ROOT); // SMSG_MOVE_FORCE_UNROOT, ~MOVEMENTFLAG_ROOT
 
-    if (HasUnitMovementFlag(MOVEMENTFLAG_ROOT) || HasUnitState(UNIT_STATE_ROOT))
+    AddUnitState(UNIT_STATE_MOVE);
+
+    if (player)
+        player->ResetFallingData(GetPositionZ());
+    else if (HasUnitMovementFlag(MOVEMENTFLAG_ROOT))
     {
-        ClearUnitState(UNIT_STATE_ROOT);
-
-        //TC_LOG_ERROR("sql.sql", "sending remove root : %u %u", HasUnitMovementFlag(MOVEMENTFLAG_ROOT), HasUnitState(UNIT_STATE_ROOT));
-
         WorldPacket data(SMSG_SPLINE_MOVE_UNROOT, 8);
         data.append(GetPackGUID());
         SendMessageToSet(&data, false);
     }
 
-    SetControlled(false, UNIT_STATE_ROOT);      // SMSG_MOVE_FORCE_UNROOT, ~MOVEMENTFLAG_ROOT
-    AddUnitState(UNIT_STATE_MOVE);
+    float height = pos.GetPositionZ();
 
+    Movement::MoveSplineInit init(this);
+    init.MoveTo(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ());
+    init.SetFacing(GetOrientation());
+    init.SetTransportExit();
+    init.Launch();
 
-        Movement::MoveSplineInit init(this);
-        init.MoveTo(exit_to.GetPositionX(), exit_to.GetPositionY(), height, false);
+    if (player)
+        player->ResummonPetTemporaryUnSummonedIfAny();
 
-       // TC_LOG_ERROR("sql.sql", "exiting position: %f %f %f %f", exit_to.GetPositionX(), exit_to.GetPositionY(), exit_to.GetPositionZ(), exit_to.GetOrientation());
+    if (vehicle->GetBase()->HasUnitTypeMask(UNIT_MASK_MINION) && vehicle->GetBase()->GetTypeId() == TYPEID_UNIT)
+        if (((Minion*)vehicle->GetBase())->GetOwner() == this)
+            vehicle->GetBase()->ToCreature()->DespawnOrUnsummon(1);
 
-        if (auto m = GetMap())
-            if (GetTypeId() == TYPEID_UNIT)
-                if (!CanFly())
-                    if (height > m->GetWaterOrGroundLevel(exit_to.GetPositionX(), exit_to.GetPositionY(), exit_to.GetPositionZ(), &height) + 0.1f)
-                        init.SetFall();
-
-        init.SetFacing(GetOrientation());
-        init.SetTransportExit();
-        init.Launch();
+    if (HasUnitTypeMask(UNIT_MASK_ACCESSORY))
+    {
+        // Vehicle just died, we die too
+        if (vehicle->GetBase()->getDeathState() == JUST_DIED)
+            setDeathState(JUST_DIED);
+        // If for other reason we as minion are exiting the vehicle (ejected, master dismounted) - unsummon
+        else
+            ToTempSummon()->UnSummon(2000); // Approximation
+    }
 }
 
 void Unit::BuildMovementPacket(ByteBuffer *data) const
