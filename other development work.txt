@@ -1,0 +1,54 @@
+Lots of work during project neltarion was 2 steps forward, 1 step back. 
+Probably 30% of the time spent on the project was re-doing things to satisfy a particular issue.
+None of that work was ever reflected in public changelogs.
+
+
+We implemented countless staff integrity, staff capability, and automated security features.
+I can only think of so many off the top of my head.
+
+- There is absolutely zero automated mutes or bans anywhere in our core. We all agreed it would be wrong and unwise to allow a computer to ban players.
+- We do, however, have several effort-frustrating automations in place.
+
+- Account flags, independant of security levels. Mostly used for the <DEV> Tag, but other uses are possible.
+- IP masking; Game Masters have no true need to see Raw IPs.
+- IP/Account History overlap lookups: with IPs masked, it was now safe to give GMs full reign to cross reference account and IP history.
+- Report Acknowledgements: When a GM or Mod acts on an account, the server scans through report logs and mails players with a notice that a player they had reported is banned.
+- Carbon copy system; world config controls which channels are carbon copied into a gm-only global "gmfeed" channel.
+- Shadow Muting, with false indications on say, yell, whisper, guild, raid, party, trade, duel, and mail.
+- Loot chance lookup commands; a set of commands which can be used to thoroughly understand live loot chances.
+- Head Game Master improved stealth: accounts with access_flags of head gm would enter a heightened offline state, invisible to other staff.
+- Command logs lookup command
+- Battleground scripted anticheat rules, basic timer and logic checks will punish players with death or a 24 hour deserter penalty.
+- Arena spell placement accuracy and kick timing logs, used for identifying patterns that would indicate someone using scripts.
+- Global announcements of anticheat detection with a cooldown so game masters are not overwhelmed.
+
+
+Check through world config and commands database to find most security development. I CBA going back and thinking of everything we threw in.
+
+--Español--
+Gran parte del trabajo durante el proyecto neltarion consistió en 2 pasos hacia adelante y 1 paso hacia atrás.
+Probablemente el 30% del tiempo dedicado al proyecto se dedicó a rehacer cosas para satisfacer un problema en particular.
+Nada de ese trabajo se reflejó jamás en los registros de cambios públicos.
+
+
+Implementamos innumerables funciones de integridad y capacidad del personal y de seguridad automatizadas.
+Sólo puedo pensar en un número limitado de cosas que se me vienen a la cabeza.
+
+- No hay absolutamente ningún silencio o prohibición automatizados en ningún lugar de nuestro núcleo. Todos estuvimos de acuerdo en que sería incorrecto e imprudente permitir que una computadora prohibiera jugadores.
+- Sin embargo, contamos con varias automatizaciones que frustran el esfuerzo.
+
+- Banderas de cuenta, independientes de los niveles de seguridad. Se utiliza principalmente para la etiqueta <DEV>, pero son posibles otros usos.
+- enmascaramiento de IP; Los Game Masters no tienen una verdadera necesidad de ver las IP sin formato.
+- Búsquedas de superposición de IP/Historial de cuentas: con las IP enmascaradas, ahora era seguro darle a los GM control total para cruzar la cuenta y el historial de IP.
+- Acuse de recibo de informes: cuando un GM o Mod actúa en una cuenta, el servidor escanea los registros de informes y envía un correo electrónico a los jugadores con un aviso de que un jugador que habían informado está prohibido.
+- Sistema de copia carbón; world config controla qué canales se copian en un canal global "gmfeed" exclusivo para GM.
+- Silenciamiento de sombras, con indicaciones falsas sobre decir, gritar, susurrar, gremio, incursión, grupo, comercio, duelo y correo.
+- Comandos de búsqueda de posibilidades de botín; un conjunto de comandos que se pueden utilizar para comprender a fondo las posibilidades de botín en vivo.
+- Sigilo mejorado en Head Game Master: las cuentas con access_flags del head gm entrarían en un estado fuera de línea intensificado, invisible para el resto del personal.
+- Comando de búsqueda de registros de comando
+- Las reglas antitrampas escritas en Battleground, el cronómetro básico y las comprobaciones lógicas castigarán a los jugadores con la muerte o una penalización por desertor de 24 horas.
+- Precisión de colocación de hechizos en la arena y registros de sincronización de patadas, utilizados para identificar patrones que indicarían que alguien está usando scripts.
+- Anuncios globales de detección antitrampas con un tiempo de reutilización para que los maestros del juego no se sientan abrumados.
+
+
+Consulte la configuración mundial y la base de datos de comandos para encontrar la mayoría de los desarrollos de seguridad. Hice un CBA volviendo atrás y pensando en todo lo que agregamos.

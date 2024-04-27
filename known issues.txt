@@ -1,0 +1,20 @@
+Crossfaction morphing visual issue:
+- Periodically there's a function that forces a player to remember "old" battleground data (DoForgetPlayersInBG?) and corrects a different player's data to their old race.
+This becomes an issue when players are swapping sides constantly.
+
+- Logging out has long been an instability problem. Various bugs go everywhere into the core.
+- Some old scripts are just unstable. Way too many chained pointers without null checks. I've knocked them down by the hundreds but some old shit is just too fucked and we didn't want to disable it.
+
+- Item recovery saving was a cause of MAJOR memory access issues. It was gutted entireely once we identified the problem.
+
+--Español--
+Problema visual de transformación de facciones cruzadas:
+- Periódicamente hay una función que obliga al jugador a recordar datos "antiguos" del campo de batalla (¿DoForgetPlayersInBG?) y corrige los datos de un jugador diferente a su antigua raza.
+Esto se convierte en un problema cuando los jugadores cambian de bando constantemente.
+
+- El cierre de sesión ha sido durante mucho tiempo un problema de inestabilidad. Varios errores van por todas partes hasta el núcleo.
+- Algunos scripts antiguos son simplemente inestables. Demasiados punteros encadenados sin comprobaciones nulas. Los he derribado por cientos, pero algunas cosas viejas están demasiado jodidas y no queríamos desactivarlas.
+
+- El guardado de recuperación de elementos fue la causa de GRANDES problemas de acceso a la memoria. Fue destruido por completo una vez que identificamos el problema.
+
+- Combate/Amenaza fue recientemente reelaborado en gran medida hacia el final. Varios scripts simplemente necesitan corregir las funciones de inicio de ataque. Esto no afecta a los PNJ sin guión.
