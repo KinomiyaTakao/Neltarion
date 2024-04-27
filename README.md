@@ -9,6 +9,11 @@ modern Setup, confirmed with successful compile.
 - Cmake 3.25.2(required to specify visual studio 2022): https://github.com/Kitware/CMake/releases/download/v3.25.2/cmake-3.25.2-windows-x86_64.msi
 - Visual Studio 2022 (17):  https://visualstudio.microsoft.com/downloads/
 
+Map data is specialized for Project Neltharion.
+- Tree collisions
+- Strand of the Ancients Gates behave properly
+
+https://drive.google.com/file/d/1xJcusFgYYOSarPM-6WRmNJLP5hzSKKmf/view?usp=sharing
 
 
 Project Neltharion, as most recently existed in October 2023.
