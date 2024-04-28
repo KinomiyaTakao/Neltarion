@@ -889,18 +889,7 @@ public:
 
 static const uint16 DarkmoonFairEvents[] =
 {
-    111, // January
-    112, // February
-    113, // March
-    114, // April
-    115, // May
-    116, // June
-    117, // July
-    118, // August
-    119, // Semptember
-    120, // October
-    121, // November
-    122  // December
+    3 
 };
 
 static uint32 const DARKMOON_ZONEID = 5861;
