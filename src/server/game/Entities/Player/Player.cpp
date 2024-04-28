@@ -2630,6 +2630,7 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
                 SetLinearTransport(NULL);
             }
 
+			m_movementInfo.ClearTransport();
             m_movementInfo.t_pos.Relocate(0.0f, 0.0f, 0.0f, 0.0f);
             m_movementInfo.t_time = 0;
             m_movementInfo.t_seat = -1;
@@ -2667,6 +2668,7 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
             }
             */
 
+			m_movementInfo.ClearTransport();
             m_movementInfo.t_pos.Relocate(0.0f, 0.0f, 0.0f, 0.0f);
             m_movementInfo.t_time = 0;
             m_movementInfo.t_time2 = 0;
@@ -31495,6 +31497,7 @@ void Player::SwitchRaidMap(uint32 mapid, Difficulty previousDifficulty, Difficul
         }
         */
 
+		m_movementInfo.ClearTransport();
         m_movementInfo.t_pos.Relocate(0.0f, 0.0f, 0.0f, 0.0f);
         m_movementInfo.t_time = 0;
         m_movementInfo.t_time2 = 0;

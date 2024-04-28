@@ -884,6 +884,7 @@ bool WorldSession::HandleMovementInfo(MovementInfo &movementInfo, const uint16 o
         movementInfo.t_pos.Relocate(0.0f, 0.0f, 0.0f, 0.0f);
         movementInfo.t_time = 0;
         movementInfo.t_seat = -1;
+		movementInfo.ClearTransport();
     }
 
     if (plrMover && plrMover->GetMapId() == 754)
