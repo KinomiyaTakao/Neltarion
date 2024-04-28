@@ -11,9 +11,25 @@
 # Set projectname (must be done AFTER setting configurationtypes)
 project(TrinityCore)
 
-# CMake policies (can not be handled elsewhere)
-cmake_minimum_required(VERSION 2.8)
+if (UNIX)
+  if (EXISTS "/usr/bin/gcc-4.9")
+    message (STATUS "gcc 4.9 found. Force switching to 4.8")
+    if (NOT EXISTS "/usr/bin/gcc-4.8")
+      message (FATAL_ERROR "gcc 4.8 not found")
+    endif()
+    if (NOT EXISTS "/usr/bin/g++-4.8")
+      message (FATAL_ERROR "g++ 4.8 not installed")
+    endif()
+    set (CMAKE_C_COMPILER "/usr/bin/gcc-4.8")
+    set (CMAKE_CXX_COMPILER "/usr/bin/g++-4.8")
+  endif()
+endif()
+
+cmake_minimum_required(VERSION 2.8.9)
 cmake_policy(SET CMP0005 OLD)
+if(POLICY CMP0043)
+  cmake_policy(SET CMP0043 OLD) # Disable 'Ignore COMPILE_DEFINITIONS_<Config> properties'
+endif(POLICY CMP0043)
 
 # add this options before PROJECT keyword
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
@@ -35,6 +51,7 @@ endif()
 
 include(CheckCXXSourceRuns)
 include(CheckIncludeFiles)
+include(GroupSources)
 
 # set default buildoptions and print them
 include(cmake/options.cmake)
@@ -51,6 +68,7 @@ include(CheckPlatform)
 find_package(PCHSupport)
 find_package(ACE REQUIRED)
 find_package(OpenSSL REQUIRED)
+find_package(Threads REQUIRED)
 if( NOT USE_MYSQL_SOURCES )
   find_package(MySQL REQUIRED)
 endif()
@@ -59,8 +77,16 @@ if( UNIX )
   find_package(Readline)
   find_package(ZLIB)
   find_package(BZip2)
-  find_package(Threads REQUIRED)
 endif()
+
+if(NOT WITHOUT_GIT)
+  find_package(Git)
+endif()
+
+set(Boost_USE_STATIC_LIBS ON)
+find_package(Boost COMPONENTS system locale filesystem thread regex serialization
+    REQUIRED
+)
 
 # Find revision ID and hash of the sourcetree
 include(cmake/genrev.cmake)

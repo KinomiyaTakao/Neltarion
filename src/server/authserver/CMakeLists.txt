@@ -56,6 +56,12 @@ include_directories(
   ${OPENSSL_INCLUDE_DIR}
 )
 
+if (Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
+endif()
+
+GroupSources(${CMAKE_CURRENT_SOURCE_DIR})
+
 add_executable(authserver
   ${authserver_SRCS}
   ${authserver_PCH_SRC}
@@ -76,6 +82,7 @@ target_link_libraries(authserver
   ${OPENSSL_LIBRARIES}
   ${ACE_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
+  ${Boost_LIBRARIES}
 )
 else()
 target_link_libraries(authserver

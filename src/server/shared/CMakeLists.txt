@@ -72,6 +72,12 @@ include_directories(
   ${OPENSSL_INCLUDE_DIR}
 )
 
+GroupSources(${CMAKE_CURRENT_SOURCE_DIR})
+
+if (Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
+endif()
+
 add_library(shared STATIC
   ${shared_STAT_SRCS}
   ${shared_STAT_PCH_SRC}
