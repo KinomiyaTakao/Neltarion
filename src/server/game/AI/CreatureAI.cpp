@@ -260,84 +260,20 @@ bool CreatureAI::UpdateVictimWithGaze()
 
 bool CreatureAI::UpdateVictim()
 {
-    if (!me)
+    if (!me->isInCombat())
         return false;
 
-    if (!me->isInCombat())
-        if (!me->getThreatManager().getThreatList().size())
-            return false;
-
-    if (!me->ToPet())
-    if (!me->isInCombat())
-    if (!me->HasUnitState(UNIT_STATE_CASTING))
-    if (me->getThreatManager().getThreatList().size())
-    if (me->CanHaveThreatList())
+    if (!me->HasReactState(REACT_PASSIVE))
     {
-        me->CombatStop(true);
-        return false;
+        if (Unit* victim = me->SelectVictim())
+            AttackStart(victim);
+        return me->getVictim() != nullptr;
     }
-
-    if (!me->HasReactState(REACT_PASSIVE) && !me->HasUnitMovementFlag(MOVEMENTFLAG_TRACKING_TARGET))
+    else if (me->getThreatManager().isThreatListEmpty())
     {
-        
-        if (!me->HasUnitState(UNIT_STATE_CASTING))
-            if (auto victim = me->SelectVictim())
-            {
-                if (victim != me->getVictim())
-                    AttackStart(victim);
-                return me->getVictim();
-            }
-            else
-            {
-                if (me->CanHaveThreatList() && !me->ToPet())
-                    if (!me->HasUnitState(UNIT_STATE_CASTING))
-                        me->CombatStop(true);
-                EnterEvadeMode();
-                return false;
-            }
-    }
-    else
-    if (me->getThreatManager().isThreatListEmpty())
-    {
-        if (me->CanHaveThreatList())
-            if (!me->HasUnitState(UNIT_STATE_CASTING))
-                me->CombatStop(true);
         EnterEvadeMode();
         return false;
     }
-
-    if (me->GetCreatureType() == CREATURE_TYPE_CRITTER)
-        {
-            ThreatContainer::StorageType const& threatlist = me->getThreatManager().getThreatList();
-            if (threatlist.size())
-            {
-                bool reset{ true };
-                bool playerReset{ false };
-
-                for (auto itr = threatlist.begin(); itr != threatlist.end(); ++itr)
-                    if (auto ref = (*itr))
-                        if (auto unit = ref->getTarget())
-                        {
-                            if (me->GetExactDist(unit) < 15.f)
-                                reset = false;
-                            else
-                                if (unit->ToPlayer())
-                                    playerReset = true;
-                        }
-                        /*
-                                If no targets are within 15 yards, enter evade mode.
-                                If a player target is more than 15 yards away, enter evade mode. (even if theres multiple players. This is a critter)
-                        */
-
-                if (reset || playerReset)
-                {
-                    me->CombatStop(true);
-                    EnterEvadeMode();
-                    return false;
-                }
-            }
-        }
-
 
     return true;
 }

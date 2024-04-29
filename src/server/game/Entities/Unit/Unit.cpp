@@ -10645,107 +10645,108 @@ bool Unit::IsNeutralToAll() const
 
 bool Unit::Attack(Unit* victim, bool meleeAttack)
 {
-    /*
-        Return false checks
-    */
-
-    if (!victim)
-        return false;
-
-    if (victim == this)
+    if (!victim || victim == this)
         return false;
 
     // dead units can neither attack nor be attacked
     if (!isAlive() || !victim->IsInWorld() || !victim->isAlive())
         return false;
 
+    // player cannot attack in mount state
+    if (GetTypeId() == TYPEID_PLAYER && IsMounted())
+        return false;
+
     if (HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PACIFIED))
         return false;
 
-    if (HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED))
-        return false;
-
-    if (!_IsValidAttackTarget(victim, NULL))
-        return false;
     // nobody can attack GM in GM-mode
-    if (auto p2 = victim->ToPlayer())
-        if (p2->isGameMaster())
-            return false;
-
-    if (auto p = ToPlayer()) // player cannot attack in mount state
-        if (p->IsMounted())
-            return false;
-
-    if (auto c = victim->ToCreature())
-        if (c->IsInEvadeMode())
-            return false;
-
-    /*
-        We're moving onto the new target.
-    */
-
-    // switch to melee attack from ranged/magic
-    if (meleeAttack)
+    if (victim->GetTypeId() == TYPEID_PLAYER)
     {
-        if (!HasUnitState(UNIT_STATE_MELEE_ATTACKING))//melee to melee
-            AddUnitState(UNIT_STATE_MELEE_ATTACKING);//ranged to melee
+        if (victim->ToPlayer()->isGameMaster())
+            return false;
     }
     else
     {
-        if (HasUnitState(UNIT_STATE_MELEE_ATTACKING))//melee to range swap
-            ClearUnitState(UNIT_STATE_MELEE_ATTACKING);//range to range
+        if (victim->ToCreature()->IsInEvadeMode())
+            return false;
     }
 
-    if (m_attacking != victim)
+    // remove SPELL_AURA_MOD_UNATTACKABLE at attack (in case non-interruptible spells stun aura applied also that not let attack)
+    //    if (HasAuraType(SPELL_AURA_MOD_UNATTACKABLE))
+    //    RemoveAurasByType(SPELL_AURA_MOD_UNATTACKABLE);
+
+    if (m_attacking)
     {
-
-        if (m_attacking)
-            m_attacking->_removeAttacker(this);
-
-        if (meleeAttack)
-            SendMeleeAttackStop(m_attacking);
-
-        m_attacking = victim;
-        ASSERT(m_attacking);
-
-        if (meleeAttack)
-            SendMeleeAttackStart(victim);
-
-        victim->_addAttacker(this);
-
-        if (GetUInt64Value(UNIT_FIELD_TARGET) != victim->GetGUID())
-            SetTarget(victim->GetGUID());
-        /*
-            Cleanup Complete, onto the new tarrget.
-        */
-
-        if (auto c = ToCreature())
+        if (m_attacking == victim)
         {
-            SetInCombatWith(victim);
-            // should not let player enter combat by right clicking target - doesn't helps
-            if (victim->GetTypeId() == TYPEID_PLAYER)
-                victim->SetInCombatWith(this);
-
-            if (c->isPet())
+            // switch to melee attack from ranged/magic
+            if (meleeAttack)
             {
-                c->SendAIReaction(AI_REACTION_HOSTILE);
-                c->CallAssistance();
+                if (!HasUnitState(UNIT_STATE_MELEE_ATTACKING))
+                {
+                    AddUnitState(UNIT_STATE_MELEE_ATTACKING);
+                    SendMeleeAttackStart(victim);
+                    return true;
+                }
             }
+            else if (HasUnitState(UNIT_STATE_MELEE_ATTACKING))
+            {
+                ClearUnitState(UNIT_STATE_MELEE_ATTACKING);
+                SendMeleeAttackStop(victim);
+                return true;
+            }
+            return false;
         }
 
-        // delay offhand weapon attack to next attack time
-        if (haveOffhandWeapon())
-            resetAttackTimer(OFF_ATTACK);
+        // switch target
+        InterruptSpell(CURRENT_MELEE_SPELL);
+        if (!meleeAttack)
+            ClearUnitState(UNIT_STATE_MELEE_ATTACKING);
+    }
 
+    if (m_attacking)
+        m_attacking->_removeAttacker(this);
 
-        // Let the pet know we've started attacking someting. Handles melee attacks only
-        // Spells such as auto-shot and others handled in WorldSession::HandleCastSpellOpcode
-        if (auto p2 = ToPlayer())
-            if (Pet* playerPet = p2->GetPet())
-                if (playerPet->isAlive())
-                    if (auto ai = playerPet->AI())
-                        ai->OwnerAttacked(victim);
+    m_attacking = victim;
+    m_attacking->_addAttacker(this);
 
+    // Set our target
+    SetTarget(victim->GetGUID());
+
+    if (meleeAttack)
+        AddUnitState(UNIT_STATE_MELEE_ATTACKING);
+
+    // set position before any AI calls/assistance
+    // if (GetTypeId() == TYPEID_UNIT)
+    //    ToCreature()->SetCombatStartPosition(GetPositionX(), GetPositionY(), GetPositionZ());
+
+    if (GetTypeId() == TYPEID_UNIT && !ToCreature()->isPet())
+    {
+        // should not let player enter combat by right clicking target - doesn't helps
+        SetInCombatWith(victim);
+        if (victim->GetTypeId() == TYPEID_PLAYER)
+            victim->SetInCombatWith(this);
+        AddThreat(victim, 0.0f);
+
+        ToCreature()->SendAIReaction(AI_REACTION_HOSTILE);
+        ToCreature()->CallAssistance();
+    }
+
+    // delay offhand weapon attack to next attack time
+    if (haveOffhandWeapon())
+        resetAttackTimer(OFF_ATTACK);
+
+    if (meleeAttack)
+        SendMeleeAttackStart(victim);
+
+    // Let the pet know we've started attacking someting. Handles melee attacks only
+    // Spells such as auto-shot and others handled in WorldSession::HandleCastSpellOpcode
+    if (this->GetTypeId() == TYPEID_PLAYER)
+    {
+        Pet* playerPet = this->ToPlayer()->GetPet();
+
+        if (playerPet && playerPet->isAlive())
+            playerPet->AI()->OwnerAttacked(victim);
     }
 
     return true;
