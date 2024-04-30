@@ -5,7 +5,7 @@
 #include "ScriptedGossip.h"
 #include "ScriptMgr.h"
 #include "SpellScript.h"
-// #include "gilneas.h"
+#include "gilneas.h"
 
 enum GilneasDefaultSpells
 {
@@ -2182,6 +2182,832 @@ public:
     }
 };
 
+/* #####  The Battle for Gilneas 24904 */
+bool inprogress;
+
+class npc_krennan_aranas : public CreatureScript
+{
+public:
+    npc_krennan_aranas() : CreatureScript("npc_krennan_aranas") { }
+	
+    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*uiSender*/, uint32 uiAction)
+    {
+        player->PlayerTalkClass->ClearMenus();
+        switch (uiAction)
+        {
+        case GOSSIP_ACTION_INFO_DEF + 1:
+            player->CLOSE_GOSSIP_MENU();
+            CAST_AI(npc_krennan_aranas::npc_krennan_aranasAI, creature->AI())->StartBattle(player);            
+            break;
+
+        case GOSSIP_ACTION_INFO_DEF + 2:
+            player->CLOSE_GOSSIP_MENU();
+            CAST_AI(npc_krennan_aranas::npc_krennan_aranasAI, creature->AI())->EndBattle();            
+            break;
+
+        case GOSSIP_ACTION_INFO_DEF + 3:
+            player->CLOSE_GOSSIP_MENU();
+            CAST_AI(npc_krennan_aranas::npc_krennan_aranasAI, creature->AI())->JoinBattle(player);
+            break;
+        }
+        return true;
+    }
+
+    bool OnGossipHello(Player* player, Creature* creature)
+    {
+        if (creature->isQuestGiver())
+            player->PrepareQuestMenu(creature->GetGUID());
+
+		if (player->GetQuestStatus(QUEST_THE_BATTLE_FOR_GILNEAS_CITY) == QUEST_STATUS_INCOMPLETE && !inprogress)
+        {
+            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, "Recuperemos nuestra ciudad!", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
+            player->SEND_GOSSIP_MENU(15377, creature->GetGUID());
+        }
+        if (player->isGameMaster())
+            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, "(GM ONLY) RESET EVENT!", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 2);
+
+        if (player->GetQuestStatus(QUEST_THE_BATTLE_FOR_GILNEAS_CITY) == QUEST_STATUS_INCOMPLETE && inprogress)
+        {
+            if (Creature *prince = creature->FindNearestCreature(38218, 50, true))
+                player->SEND_GOSSIP_MENU(15378, creature->GetGUID());
+            else   
+            {
+                player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, "Estoy listo para unirme a la Batalla por la Ciudad de Gilneas!", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 3);
+                player->SEND_GOSSIP_MENU(15378, creature->GetGUID());
+            }
+        }
+        return true;
+    }
+
+    CreatureAI* GetAI(Creature* pCreature) const
+    {
+        return new npc_krennan_aranasAI(pCreature);
+    }
+
+    struct npc_krennan_aranasAI : public ScriptedAI
+    {
+        npc_krennan_aranasAI(Creature *c) : ScriptedAI(c) {}
+	
+        uint64 princeGUID;		
+
+        void Reset()
+        {
+			inprogress = false;
+            princeGUID = 0;
+            if (Creature* newPrince = me->SummonCreature(NPC_PRINCE_LIAM_GREYMANE_BATTLE, -1408.661f, 1260.017f, 36.51123f, 1.79f, TEMPSUMMON_DEAD_DESPAWN, 180000))
+            {
+                princeGUID = newPrince->GetGUID();
+            }
+        }
+
+        void StartBattle(Player* pl)
+        {
+			inprogress = true;
+            if (Creature* prince = Unit::GetCreature(*me, princeGUID))
+            {
+                prince->AI()->DoAction(ACTION_START_EVENT);
+            }
+            else
+            {
+                princeGUID = 0;
+                if (Creature* newPrince = me->SummonCreature(NPC_PRINCE_LIAM_GREYMANE_BATTLE, -1408.661f, 1260.017f, 36.51123f, 1.79f, TEMPSUMMON_DEAD_DESPAWN, 180000))
+                {
+                    princeGUID = newPrince->GetGUID();
+                    newPrince->AI()->DoAction(ACTION_START_EVENT);
+                }
+            }
+        }
+
+        void EndBattle()
+        {
+			inprogress = false;
+            if (Creature* prince = Unit::GetCreature(*me, princeGUID))
+                prince->DespawnOrUnsummon(1);
+            princeGUID = 0;
+            if (Creature* newPrince = me->SummonCreature(NPC_PRINCE_LIAM_GREYMANE_BATTLE, -1408.661f, 1260.017f, 36.51123f, 1.79f, TEMPSUMMON_DEAD_DESPAWN, 180000))
+            {
+                princeGUID = newPrince->GetGUID();
+            }
+        }
+
+        void JoinBattle(Player* pl)
+        {
+            if (Creature* prince = Unit::GetCreature(*me, princeGUID))
+                pl->TeleportTo(654, prince->GetPositionX(), prince->GetPositionY(), prince->GetPositionZ(), prince->GetOrientation());
+        }	
+    };
+};
+
+class npc_prince_liam_greymane_gilneas : public CreatureScript
+{
+public:
+    npc_prince_liam_greymane_gilneas() : CreatureScript("npc_prince_liam_greymane_gilneas") {}
+
+	CreatureAI* GetAI(Creature* creature) const
+	{
+		return new npc_prince_liam_greymane_gilneasAI(creature);
+	}
+
+    struct npc_prince_liam_greymane_gilneasAI : public npc_escortAI
+    {
+        npc_prince_liam_greymane_gilneasAI(Creature *c) : npc_escortAI(c), summons(me)
+        {
+        }
+
+        void Reset()
+        {
+            me->AddUnitState(UNIT_STATE_IGNORE_PATHFINDING);
+            me->CastSpell(me, 72069, true);
+            startEvent = false;
+            intro = true;
+            canFollow = false;
+            phase = 1;
+            intoTimer = 5000;
+            checkTimer = 3000;
+            summons.DespawnAll();
+            float summon_x = me->GetPositionX() - 6;
+            float summon_y = me->GetPositionY() - 4;
+
+            int j = 0;
+            int row = 0;
+
+            for (int i = 0; i < 49; i++)
+            {
+                if (j > 6)
+                {
+                    j = 0;
+                    row++;
+                    summon_y -= 3;
+                    summon_x = me->GetPositionX() - 6;
+                }
+
+                if (Creature * milit = me->SummonCreature(38221, (summon_x + cos(5.42f)*row), (summon_y - sin(5.42f)*j), 36.51123f, 1.79f, TEMPSUMMON_MANUAL_DESPAWN))
+                {
+                    militiamans[i] = milit->GetGUID();
+                    if (i % 2 == 0)
+                        milit->AI()->SetData(DATA_GROUP, GROUP_1);
+                    else
+                        milit->AI()->SetData(DATA_GROUP, GROUP_1); // need to be improved...
+                }
+                summon_x += 2;
+                j++;
+            }
+            mui_moveTimer = 1000;
+        }
+
+        void JustDied(Unit* /*killer*/)
+        {
+            summons.DespawnAll();
+        }
+
+        bool CanFollow() { return canFollow; }
+
+        void moveGroup(uint32 group, float x, float y, float z)
+        {
+            for (int i = 0; i < 49; i++)
+                if (Creature *milit = Unit::GetCreature(*me, militiamans[i]))
+                    if (milit->AI()->GetData(DATA_GROUP) == group)
+                    {
+                        milit->SetHomePosition(x, y, z, milit->GetOrientation());
+                        milit->GetMotionMaster()->MovePoint(0, x, y, z);
+                    }
+        }
+
+        void JustSummoned(Creature* summon)
+        {
+            summons.Summon(summon);
+        }
+
+        void SummonedCreatureDies(Creature* summon, Unit* /*killer*/)
+        {
+            summons.Despawn(summon);
+        }
+
+        void WaypointReached(uint32 point)
+        {
+            RefreshMovementMilitary(GROUP_1);
+            switch (point)
+            {
+            case 1:
+                moveGroup(GROUP_2, me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
+                break;
+            case 5:
+                Talk(7);
+                moveGroup(GROUP_2, me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
+                for (int i = 0; i < 49; i++)
+                {
+                    if (Creature *milit = Unit::GetCreature(*me, militiamans[i]))
+                        milit->ClearUnitState(UNIT_STATE_IGNORE_PATHFINDING);
+                }
+                break;
+            case 7:
+                Talk(8);
+                break;
+            case 9:
+                for (int i = 0; i < 49; i++)
+                {
+                    if (Creature *milit = Unit::GetCreature(*me, militiamans[i]))
+                        milit->AddUnitState(UNIT_STATE_IGNORE_PATHFINDING);
+                }
+                break;
+            case 10:// Lorna Crowley Summon		 Lorna is handled via SAI
+                Talk(9);
+				me->SummonCreature(38426, -1574.43f, 1279.024f, 30.9144f, 3.41682f, TEMPSUMMON_MANUAL_DESPAWN);
+                moveGroup(GROUP_2, me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
+                break;
+            case 12:
+                Talk(10);
+                break;
+            case 14:                
+                moveGroup(GROUP_2, me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
+                me->ClearUnitState(UNIT_STATE_IGNORE_PATHFINDING);
+                for (int i = 0; i < 49; i++)
+                {
+                    if (Creature *milit = Unit::GetCreature(*me, militiamans[i]))
+                        milit->ClearUnitState(UNIT_STATE_IGNORE_PATHFINDING);
+                }
+                break;
+            case 15:
+                if (Creature *abo = me->SummonCreature(38331, -1710.466f, 1407.905f, 21.75196f, -1.89314f, TEMPSUMMON_DEAD_DESPAWN, 60000))
+                {
+                    abo->AI()->DoMeleeAttackIfReady();
+                    if (Creature *darius = me->SummonCreature(38415, -1771.81f, 1341.33f, 19.75f, 0.81314f, TEMPSUMMON_MANUAL_DESPAWN))
+                        darius->AI()->SetGUID(abo->GetGUID());
+                }
+                break;
+            case 18:
+                for (int i = 0; i < 49; i++)
+                    if (Creature *milit = Unit::GetCreature(*me, militiamans[i]))
+                        milit->AI()->SetData(DATA_GROUP, GROUP_1);
+                break;
+            case 19:
+                moveGroup(GROUP_2, me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
+                if (Creature *d = me->FindNearestCreature(38415, 200, true))
+                    d->AI()->DoAction(ACTION_DARIUS_EVENT1);
+                break;
+            case 27:
+                if (Creature *genn = me->SummonCreature(38470, -1679.711f, 1611.37f, 20.488f, 1.70523f, TEMPSUMMON_MANUAL_DESPAWN))
+                {
+                    genn->AI()->Talk(2, 0);
+                    genn->SetReactState(REACT_AGGRESSIVE);
+                    me->SummonCreature(38469, -1680.464f, 1617.32f, 20.489f, 4.9789f, TEMPSUMMON_MANUAL_DESPAWN);
+                }
+				break;
+			case 29:
+				if (Unit* summoner = me->ToTempSummon()->GetSummoner())
+					if (Creature* krennan = summoner->ToCreature())
+					{
+					krennan->GetAI()->Reset();
+					}	
+				break;
+            }
+        }
+
+        void RefreshMovementMilitary(uint32 group)
+        {
+            float x, y, z;
+            for (int i = 0; i < 49; i++)
+            {
+                float distance = urand(0, 7);
+                float angle = frand(-3 * M_PI / 4, 3 * M_PI / 2);
+                me->GetNearPoint(me, x, y, z, me->GetObjectSize(), distance, angle);
+                if (Creature *milit = Unit::GetCreature(*me, militiamans[i]))
+                    if (milit->AI()->GetData(DATA_GROUP) == group)
+                        milit->SetHomePosition(x, y, z, me->GetOrientation());
+            }
+        }
+
+        void DoAction(const int32 info)
+        {
+            switch (info)
+            {
+            case ACTION_START_EVENT:
+                startEvent = true;
+                break;
+            default:
+                break;
+            }
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (!startEvent)
+                return;
+            npc_escortAI::UpdateAI(diff);
+
+            if (canFollow)
+            {
+                if (mui_moveTimer <= diff)
+                {
+                    RefreshMovementMilitary(GROUP_1);
+                    mui_moveTimer = 10000;
+                }
+                else
+                    mui_moveTimer -= diff;
+            }
+
+            if (intro)
+            {
+                if (intoTimer <= diff)
+                {
+                    switch (phase)
+                    {
+                    case 1:
+                        Talk(0);
+                        intoTimer = 10000;
+                        break;
+                    case 2:
+                        Talk(1);
+                        intoTimer = 10000;
+                        break;
+                    case 3:
+                        Talk(2);
+                        intoTimer = 12000;
+                        break;
+                    case 4:
+                        Talk(3);
+                        intoTimer = 10000;
+                        break;
+                    case 5:
+                        Talk(4);
+                        intoTimer = 12000;
+                        break;
+                    case 6:
+                        Talk(5);
+                        intoTimer = 5500;
+                        break;
+                    case 7:
+                        Talk(6);
+                        intoTimer = 1500;
+                        AddWaypoint(1, -1422.44f, 1314.35f, 36.4279f);
+                        AddWaypoint(2, -1431.51f, 1349.84f, 35.5566f);
+                        AddWaypoint(3, -1435.42f, 1362.08f, 35.5566f);
+                        AddWaypoint(4, -1442.86f, 1392.58f, 35.5566f);
+                        AddWaypoint(5, -1458.98f, 1395.29f, 35.5566f);
+                        AddWaypoint(6, -1487.09f, 1405.37f, 35.4943f);
+                        AddWaypoint(7, -1499.99f, 1416.72f, 35.5563f);
+                        AddWaypoint(8, -1548.61f, 1418.24f, 35.5544f);
+                        AddWaypoint(9, -1560.61f, 1322.73f, 35.5564f);
+                        AddWaypoint(10, -1567.88f, 1320.06f, 35.5564f);
+                        AddWaypoint(11, -1574.89f, 1318.01f, 35.6655f);
+                        AddWaypoint(12, -1603.25f, 1313.29f, 18.4838f);
+                        AddWaypoint(13, -1651.18f, 1304.96f, 19.7811f);
+                        AddWaypoint(14, -1698.08f, 1309.5f, 19.7826f);
+                        AddWaypoint(15, -1737.22f, 1316.74f, 19.7826f);
+                        AddWaypoint(16, -1765.37f, 1351.43f, 19.4969f);
+                        AddWaypoint(17, -1751.81f, 1358.81f, 19.8771f);
+                        AddWaypoint(18, -1727.15f, 1393.67f, 21.6471f);
+                        AddWaypoint(19, -1719.11f, 1402.01f, 21.6691f);
+                        AddWaypoint(20, -1722.25f, 1397.13f, 21.6666f);
+                        AddWaypoint(21, -1737.48f, 1384.23f, 19.8429f);
+                        AddWaypoint(22, -1793.64f, 1376.04f, 19.7133f);
+                        AddWaypoint(23, -1805.33f, 1430.75f, 19.6409f);
+                        AddWaypoint(24, -1805.55f, 1502.92f, 19.7785f);
+                        AddWaypoint(25, -1795.35f, 1571.86f, 20.4921f);
+                        AddWaypoint(26, -1763.71f, 1625.89f, 20.3997f);
+                        AddWaypoint(27, -1739.99f, 1655.18f, 20.4759f);
+                        AddWaypoint(28, -1753.46f, 1672.19f, 22.1587f);
+                        AddWaypoint(29, -1716.07f, 1643.01f, 20.4865f);
+                        AddWaypoint(30, -1701.02f, 1633.92f, 20.4882f);
+                        AddWaypoint(31, -1680.98f, 1617.59f, 20.4882f);
+                        Start(false, true);
+                        SetDespawnAtEnd(true);
+                        break;
+                    case 8:
+                        me->setActive(true);
+                        me->PlayDistanceSound(22584);
+                        for (int i = 0; i < 49; i++)
+                            if (Creature *milit = Unit::GetCreature(*me, militiamans[i]))
+                            {
+                                milit->HandleEmoteCommand(25);
+                                float distance = urand(7, 15);
+                                float angle = frand(-3 * M_PI / 4, 3 * M_PI / 4);
+                                milit->GetMotionMaster()->MoveFollow(me, distance, angle, MOTION_SLOT_ACTIVE);
+                            }
+                        intro = false;
+                        canFollow = true;
+                        break;
+                    }
+                    phase++;
+                }
+                else intoTimer -= diff;
+            }
+
+            if (checkTimer <= diff)
+            {
+                if (!me->HasAura(72069))
+                    me->CastSpell(me, 72069, true);
+                checkTimer = 3000;
+            }
+            else checkTimer -= diff;
+
+            if (!UpdateVictim())
+                return;
+            DoMeleeAttackIfReady();
+        }
+
+    private:
+        bool intro;
+        bool canFollow;
+        uint32 phase;
+        uint32 intoTimer;
+        uint32 checkTimer;
+        uint64 militiamans[70];
+        uint32 mui_moveTimer;
+        bool startEvent;
+        SummonList summons;
+    };
+};
+
+class npc_gilnean_militia : public CreatureScript
+{
+public:
+    npc_gilnean_militia() : CreatureScript("npc_gilnean_militia") { }
+
+    CreatureAI* GetAI(Creature* pCreature) const
+    {
+        return new npc_gilnean_militiaAI(pCreature);
+    }
+
+    struct npc_gilnean_militiaAI : public ScriptedAI
+    {
+        npc_gilnean_militiaAI(Creature* pCreature) : ScriptedAI(pCreature) { }
+
+        void Reset()
+        {
+            me->AddUnitState(UNIT_STATE_IGNORE_PATHFINDING);
+            mui_spell1 = urand(1200, 5100);
+            mui_spell2 = urand(2100, 5400);
+            me->setActive(true);
+        }
+
+        void AttackStart(Unit* who)
+        {
+            if (me->Attack(who, true))
+                DoStartNoMovement(who);
+        }
+
+        void SetData(uint32 uiType, uint32 uiData)
+        {
+            if (uiType == DATA_GROUP)
+                group = uiData;
+        }
+
+        uint32 GetData(uint32 uiType) const
+        {
+            if (uiType == DATA_GROUP)
+                return group;
+            return 0;
+        }
+
+        void SpellHit(Unit* caster, const SpellInfo* spell)
+        {
+            if (spell->Id == 72113)
+            {
+                me->DespawnOrUnsummon(60000);
+                me->CombatStop();
+                me->SetReactState(REACT_PASSIVE);
+                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PACIFIED);
+            }
+        }
+
+        void JustReachedHome()
+        {
+            if (group == GROUP_1)
+                if (!UpdateVictim())
+                    if (me->ToTempSummon())
+                        if (Unit *p = me->ToTempSummon()->GetSummoner())
+                        {
+                            float distance = urand(7, 15);
+                            float angle = frand(-3 * M_PI / 4, 3 * M_PI / 2);
+                            float x, y, z;
+                            me->GetNearPoint(p, x, y, z, p->GetObjectSize(), distance, angle);
+                            me->GetMotionMaster()->MoveFollow(p, distance, angle, MOTION_SLOT_ACTIVE);
+                        }
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
+            if (mui_spell1 <= diff)
+            {
+                DoCastVictim(15572);
+                mui_spell1 = 10000 + urand(1200, 5100);
+            }
+            else
+                mui_spell1 -= diff;
+
+            if (mui_spell2 <= diff)
+            {
+                DoCastVictim(47168);
+                mui_spell2 = 10000 + urand(2100, 5400);
+            }
+            else
+                mui_spell2 -= diff;
+
+            victim = me->getVictim();
+            if (victim && me->GetDistance2d(victim->GetPositionX(), victim->GetPositionY()) > 7)
+                DoSpellAttackIfReady(SPELL_GILNEAS_MILITIA_SHOOT);
+            else
+                DoMeleeAttackIfReady();
+        }
+
+    private:
+        uint32 mui_spell1;
+        uint32 mui_spell2;
+        Unit *victim;
+        uint32 group;
+    };
+};
+
+// poor script, will be improved, but is been used in the quest event
+class npc_lord_darius_crowley_gilneas : public CreatureScript
+{
+public:
+    npc_lord_darius_crowley_gilneas() : CreatureScript("npc_lord_darius_crowley_gilneas") { }
+
+    CreatureAI* GetAI(Creature* pCreature) const
+    {
+        return new npc_lord_darius_crowley_gilneasAI(pCreature);
+    }
+
+    struct npc_lord_darius_crowley_gilneasAI : public ScriptedAI
+    {
+        npc_lord_darius_crowley_gilneasAI(Creature* pCreature) : ScriptedAI(pCreature) { }
+
+        void Reset()
+        {
+            float angle = 0;
+            for (int i = 0; i < 30; i++)
+            {
+                if (Creature *summon = me->SummonCreature(38348, me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), 0, TEMPSUMMON_MANUAL_DESPAWN))
+                {
+                    summon->GetMotionMaster()->MovePoint(0, -1710.466f + cos(angle) * 15, 1407.905f + sin(angle) * 15, 21.75196f);
+                    if (i >= 0 && i <= 3)
+                        worgenGUID[i] = summon->GetGUID();
+                }
+                angle += M_PI / 15;
+            }
+            me->GetMotionMaster()->MovePoint(0, -1710.466f, 1407.905f, 21.75196f);
+            aboGUID = 0;
+            mui_jumpBoss = 3000;
+            moveJumpBoss = true;
+        }
+
+        void SetGUID(uint64 guid, int32 type = 0)
+        {
+            aboGUID = guid;
+        }
+
+        void EnterCombat(Unit* pWho)
+        {
+            if (pWho->GetEntry() == 38348)
+                me->CastSpell(pWho, 71921, true);
+            Talk(0);
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (moveJumpBoss)
+            {
+                if (mui_jumpBoss <= diff)
+                {
+                    if (Creature *abo = Unit::GetCreature(*me, aboGUID))
+                        for (int i = 0; i <= 3; i++)
+                            if (Creature *worgen = Unit::GetCreature(*me, worgenGUID[i]))
+                                worgen->CastCustomSpell(VEHICLE_SPELL_RIDE_HARDCODED, SPELLVALUE_BASE_POINT0, i + 1, abo, false);
+                    moveJumpBoss = false;
+                    mui_jumpBoss = 3600000;
+                }
+                else mui_jumpBoss -= diff;
+            }
+            if (!UpdateVictim())
+                return;
+            DoMeleeAttackIfReady();
+        }
+
+    private:
+        uint64 aboGUID;
+        uint32 mui_jumpBoss;
+        bool moveJumpBoss;
+        uint64 worgenGUID[4];
+    };
+};
+
+class npc_worgen_warrior : public CreatureScript
+{
+public:
+    npc_worgen_warrior() : CreatureScript("npc_worgen_warrior") { }
+
+    CreatureAI* GetAI(Creature* pCreature) const
+    {
+        return new npc_worgen_warriorAI(pCreature);
+    }
+
+    struct npc_worgen_warriorAI : public ScriptedAI
+    {
+        npc_worgen_warriorAI(Creature* pCreature) : ScriptedAI(pCreature) { }
+
+        void Reset()
+        {
+        }
+
+        void EnterCombat(Unit* pWho)
+        {
+            if (pWho->GetEntry() == 38348)
+            {
+                me->CastSpell(pWho, 71921, true);
+            }
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+};
+
+class npc_lady_sylvanas_gilneas : public CreatureScript
+{
+public:
+    npc_lady_sylvanas_gilneas() : CreatureScript("npc_lady_sylvanas_gilneas") { }
+
+    CreatureAI* GetAI(Creature* pCreature) const
+    {
+        return new npc_lady_sylvanas_gilneasAI(pCreature);
+    }
+
+    struct npc_lady_sylvanas_gilneasAI : public ScriptedAI
+    {
+        npc_lady_sylvanas_gilneasAI(Creature* pCreature) : ScriptedAI(pCreature) { }
+
+        bool outEvent;
+        uint32 phase;
+        uint32 phaseTimer;
+
+        uint64 liamGUID;
+        uint64 gennGUID;
+
+        void Reset()
+        {
+            outEvent = false;
+            phase = 1;
+            phaseTimer = 300;
+            liamGUID = 0;
+            gennGUID = 0;
+        }
+
+        void EnterCombat(Unit* pWho)
+        {
+
+        }
+
+        void DoAction(const int32 type)
+        {
+            if (type == ACTION_START_EVENT)
+                outEvent = true;
+        }
+
+        void DamageTaken(Unit* who, uint32 &damage)
+        {
+            if (me->GetHealthPct() <= 80)
+            {
+                if (Creature *liam1 = me->FindNearestCreature(38218, 20))
+                    liam1->DespawnOrUnsummon(0);
+            }
+
+            if (me->GetHealthPct() <= 20)
+            {
+                DoAction(ACTION_START_EVENT);
+                damage = 0;
+            }
+
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (outEvent)
+            {
+                if (phaseTimer <= diff)
+                {
+                    switch (phase)
+                    {
+                    case 1:
+                    {
+                        DoCastAOE(72113, true);
+                        Talk(0);
+                        me->CombatStop();
+                        me->SetReactState(REACT_PASSIVE);
+                        me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PACIFIED);
+                        if (Creature *genn = me->FindNearestCreature(38470, 100))
+                        {
+                            genn->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PACIFIED);
+                        }
+                        phaseTimer = 2000;
+                        break;
+                    }
+                    case 2:
+                        phaseTimer = 3000;
+                        break;
+                    case 3:
+                        if (Creature *genn = me->FindNearestCreature(38470, 100))
+                        {
+                            gennGUID = genn->GetGUID();
+                            genn->CastSpell(genn, 86141, true);
+                        }
+                        Talk(1);
+                        phaseTimer = 5000;
+                        break;
+                    case 4:
+                        if (Creature *liam = me->SummonCreature(38474, -1634.634f, 1631.859f, 21.21159f, 4.694936f, TEMPSUMMON_TIMED_DESPAWN, 60000))
+                        {
+                            liamGUID = liam->GetGUID();
+                            liam->SetReactState(REACT_PASSIVE);
+                            liam->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PACIFIED);
+                        }
+                        phaseTimer = 3000;
+                        break;
+                    case 5:
+                        if (Creature *genn = Unit::GetCreature(*me, gennGUID))
+                            if (Creature *liam = Unit::GetCreature(*me, liamGUID))
+                            {
+                                liam->AI()->Talk(0);
+                                liam->GetMotionMaster()->MovePoint(0, genn->GetPositionX(), genn->GetPositionY(), genn->GetPositionZ());
+                            }
+                        phaseTimer = 4000;
+                        break;
+                    case 6:
+                        Talk(2);
+                        if (Creature *liam = Unit::GetCreature(*me, liamGUID))
+                        {
+                            liam->GetMotionMaster()->MovePoint(0, me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
+                        }
+                        phaseTimer = 3000;
+                        break;
+                    case 7:
+                        if (Creature *liam = Unit::GetCreature(*me, liamGUID))
+                        {
+                            me->CastSpell(liam, 72116, true);
+                            me->Kill(liam);
+                            std::list<Player *> players = me->GetPlayersInRange(200, true);
+                            for (std::list<Player *>::const_iterator it = players.begin(); it != players.end(); it++)
+                                (*it)->KilledMonsterCredit(38854, 0);
+                        }
+                        if (Creature *genn = Unit::GetCreature(*me, gennGUID))
+                        {
+                            genn->AI()->Talk(1);
+                            genn->RemoveAurasDueToSpell(86141);
+                            genn->RemoveAurasDueToSpell(72113);
+                        }
+                        phaseTimer = 3000;
+                        break;
+                    case 8:
+                        if (Creature *liam = Unit::GetCreature(*me, liamGUID))
+                        {
+                            if (Creature *genn = Unit::GetCreature(*me, gennGUID))
+                            {
+                                genn->GetMotionMaster()->MovePoint(0, liam->GetPositionX(), liam->GetPositionY(), liam->GetPositionZ());
+                            }
+                        }
+                        phaseTimer = 2000;
+                        break;
+                    case 9:
+                        if (Creature *genn = Unit::GetCreature(*me, gennGUID))
+                            genn->CastSpell(genn, 68442, true);
+                        phaseTimer = 3500;
+                        break;
+                    case 10:
+                        phaseTimer = 2500;
+                        break;
+                    case 11:
+                        if (Creature *genn = Unit::GetCreature(*me, gennGUID))
+                        {
+                            me->GetMotionMaster()->MovePoint(0, -1634.634f, 1631.859f, 21.21159f);
+                            genn->DespawnOrUnsummon(60000);
+                        }
+                        phaseTimer = 6500;
+                        break;
+                    case 12:
+                        outEvent = false;
+                        me->DespawnOrUnsummon(1000);
+                        break;
+                    }
+                    phase++;
+                }
+                else phaseTimer -= diff;
+            }
+
+            if (!UpdateVictim())
+                return;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+};
 
 void AddSC_gilneas()
 {
@@ -2201,4 +3027,10 @@ void AddSC_gilneas()
     new npc_captured_riding_bat_worgen();
     new npc_gilneas_liam_camera();
     new npc_gilneas_captured_worgen();
+    new npc_krennan_aranas();
+    new npc_prince_liam_greymane_gilneas();
+    new npc_gilnean_militia();
+    new npc_lord_darius_crowley_gilneas();
+    new npc_worgen_warrior();
+    new npc_lady_sylvanas_gilneas();
 }
