@@ -8786,7 +8786,7 @@ void ObjectMgr::FillMissingBroadcastTexts()
             {
                 gItr->second.OptionBroadcastTextId = bctId;
                 ++count;
-                TC_LOG_INFO("server.loading", "ObjectMgr::FillMissingBroadcastTexts: Found broadcast text (Id: %u) for gossipmenu option (MenuId: %u, Id: %u).", bctId, gItr->second.MenuId, gItr->second.OptionIndex);
+                //TC_LOG_INFO("server.loading", "ObjectMgr::FillMissingBroadcastTexts: Found broadcast text (Id: %u) for gossipmenu option (MenuId: %u, Id: %u).", bctId, gItr->second.MenuId, gItr->second.OptionIndex);
 
                 if (!trans.null())
                     trans->PAppend("UPDATE gossip_menu_option SET OptionBroadcastTextID = %u where menu_id = %u AND id = %u", gItr->second.OptionBroadcastTextId, gItr->second.MenuId, gItr->second.OptionIndex);
@@ -8799,7 +8799,7 @@ void ObjectMgr::FillMissingBroadcastTexts()
             {
                 gItr->second.BoxBroadcastTextId = bctId;
                 ++count;
-                TC_LOG_INFO("server.loading", "ObjectMgr::FillMissingBroadcastTexts: Found broadcast text (Id: %u) for gossipmenu option box (MenuId: %u, Id: %u).", bctId, gItr->second.MenuId, gItr->second.OptionIndex);
+                //TC_LOG_INFO("server.loading", "ObjectMgr::FillMissingBroadcastTexts: Found broadcast text (Id: %u) for gossipmenu option box (MenuId: %u, Id: %u).", bctId, gItr->second.MenuId, gItr->second.OptionIndex);
 
                 if (!trans.null())
                     trans->PAppend("UPDATE gossip_menu_option SET BoxBroadcastTextID = %u where menu_id = %u AND id = %u", gItr->second.BoxBroadcastTextId, gItr->second.MenuId, gItr->second.OptionIndex);
