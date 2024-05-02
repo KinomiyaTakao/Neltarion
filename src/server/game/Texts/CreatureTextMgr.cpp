@@ -277,7 +277,7 @@ void CreatureTextMgr::FillMissingBroadcastTexts()
                 {
                     textIter->BroadcastTextId = bctId;
                     ++count;
-                    TC_LOG_INFO("server.loading", "CreatureTextMgr::FillMissingBroadcastTexts: Found broadcast text (Id: %u) for creature text (Entry: %u, Group: %u, Id: %u). Text %s. SoundIds %s.", bctId, textIter->entry, textIter->group, textIter->id, textMatch ? "match" : "not match", soundIdMatch ? "match" : "not match");
+                    //TC_LOG_INFO("server.loading", "CreatureTextMgr::FillMissingBroadcastTexts: Found broadcast text (Id: %u) for creature text (Entry: %u, Group: %u, Id: %u). Text %s. SoundIds %s.", bctId, textIter->entry, textIter->group, textIter->id, textMatch ? "match" : "not match", soundIdMatch ? "match" : "not match");
 
                     if (!trans.null())
                         trans->PAppend("UPDATE creature_text SET BroadcastTextID = %u WHERE entry = %u AND groupid = %u AND id = %u", textIter->BroadcastTextId, textIter->entry, textIter->group, textIter->id);
