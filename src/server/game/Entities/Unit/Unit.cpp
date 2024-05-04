@@ -2687,7 +2687,7 @@ void Unit::SendMeleeAttackStop(Unit* victim)
 
     if (!IsInWorld())
     {
-        TC_LOG_ERROR("entitiees.unit", "WORLD: prevented npc sending attack stop when unit is not in world any more.");
+        TC_LOG_DEBUG("entitiees.unit", "WORLD: prevented npc sending attack stop when unit is not in world any more.");
         return;
     }
 
