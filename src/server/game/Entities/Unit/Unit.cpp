@@ -10658,108 +10658,107 @@ bool Unit::IsNeutralToAll() const
 
 bool Unit::Attack(Unit* victim, bool meleeAttack)
 {
-    if (!victim || victim == this)
+    /*
+        Return false checks
+    */
+
+    if (!victim)
+        return false;
+
+    if (victim == this)
         return false;
 
     // dead units can neither attack nor be attacked
     if (!isAlive() || !victim->IsInWorld() || !victim->isAlive())
         return false;
 
-    // player cannot attack in mount state
-    if (GetTypeId() == TYPEID_PLAYER && IsMounted())
-        return false;
-
     if (HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PACIFIED))
         return false;
 
+    if (HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED))
+        return false;
+
+    if (!_IsValidAttackTarget(victim, NULL))
+        return false;
     // nobody can attack GM in GM-mode
-    if (victim->GetTypeId() == TYPEID_PLAYER)
-    {
-        if (victim->ToPlayer()->isGameMaster())
+    if (auto p2 = victim->ToPlayer())
+        if (p2->isGameMaster())
             return false;
+
+    if (auto p = ToPlayer()) // player cannot attack in mount state
+        if (p->IsMounted())
+            return false;
+
+    if (auto c = victim->ToCreature())
+        if (c->IsInEvadeMode())
+            return false;
+
+    /*
+        We're moving onto the new target.
+    */
+
+    // switch to melee attack from ranged/magic
+    if (meleeAttack)
+    {
+        if (!HasUnitState(UNIT_STATE_MELEE_ATTACKING))//melee to melee
+            AddUnitState(UNIT_STATE_MELEE_ATTACKING);//ranged to melee
     }
     else
     {
-        if (victim->ToCreature()->IsInEvadeMode())
-            return false;
+        if (HasUnitState(UNIT_STATE_MELEE_ATTACKING))//melee to range swap
+            ClearUnitState(UNIT_STATE_MELEE_ATTACKING);//range to range
     }
 
-    // remove SPELL_AURA_MOD_UNATTACKABLE at attack (in case non-interruptible spells stun aura applied also that not let attack)
-    //    if (HasAuraType(SPELL_AURA_MOD_UNATTACKABLE))
-    //    RemoveAurasByType(SPELL_AURA_MOD_UNATTACKABLE);
-
-    if (m_attacking)
+    if (m_attacking != victim)
     {
-        if (m_attacking == victim)
+
+        if (m_attacking)
+            m_attacking->_removeAttacker(this);
+
+        if (meleeAttack)
+            SendMeleeAttackStop(m_attacking);
+
+        m_attacking = victim;
+        ASSERT(m_attacking);
+
+        if (meleeAttack)
+            SendMeleeAttackStart(victim);
+
+        victim->_addAttacker(this);
+
+        if (GetUInt64Value(UNIT_FIELD_TARGET) != victim->GetGUID())
+            SetTarget(victim->GetGUID());
+        /*
+            Cleanup Complete, onto the new tarrget.
+        */
+
+        if (auto c = ToCreature())
         {
-            // switch to melee attack from ranged/magic
-            if (meleeAttack)
+            SetInCombatWith(victim);
+            // should not let player enter combat by right clicking target - doesn't helps
+            if (victim->GetTypeId() == TYPEID_PLAYER)
+                victim->SetInCombatWith(this);
+
+            if (c->isPet())
             {
-                if (!HasUnitState(UNIT_STATE_MELEE_ATTACKING))
-                {
-                    AddUnitState(UNIT_STATE_MELEE_ATTACKING);
-                    SendMeleeAttackStart(victim);
-                    return true;
-                }
+                c->SendAIReaction(AI_REACTION_HOSTILE);
+                c->CallAssistance();
             }
-            else if (HasUnitState(UNIT_STATE_MELEE_ATTACKING))
-            {
-                ClearUnitState(UNIT_STATE_MELEE_ATTACKING);
-                SendMeleeAttackStop(victim);
-                return true;
-            }
-            return false;
         }
 
-        // switch target
-        InterruptSpell(CURRENT_MELEE_SPELL);
-        if (!meleeAttack)
-            ClearUnitState(UNIT_STATE_MELEE_ATTACKING);
-    }
+        // delay offhand weapon attack to next attack time
+        if (haveOffhandWeapon())
+            resetAttackTimer(OFF_ATTACK);
 
-    if (m_attacking)
-        m_attacking->_removeAttacker(this);
 
-    m_attacking = victim;
-    m_attacking->_addAttacker(this);
+        // Let the pet know we've started attacking someting. Handles melee attacks only
+        // Spells such as auto-shot and others handled in WorldSession::HandleCastSpellOpcode
+        if (auto p2 = ToPlayer())
+            if (Pet* playerPet = p2->GetPet())
+                if (playerPet->isAlive())
+                    if (auto ai = playerPet->AI())
+                        ai->OwnerAttacked(victim);
 
-    // Set our target
-    SetTarget(victim->GetGUID());
-
-    if (meleeAttack)
-        AddUnitState(UNIT_STATE_MELEE_ATTACKING);
-
-    // set position before any AI calls/assistance
-    // if (GetTypeId() == TYPEID_UNIT)
-    //    ToCreature()->SetCombatStartPosition(GetPositionX(), GetPositionY(), GetPositionZ());
-
-    if (GetTypeId() == TYPEID_UNIT && !ToCreature()->isPet())
-    {
-        // should not let player enter combat by right clicking target - doesn't helps
-        SetInCombatWith(victim);
-        if (victim->GetTypeId() == TYPEID_PLAYER)
-            victim->SetInCombatWith(this);
-        AddThreat(victim, 0.0f);
-
-        ToCreature()->SendAIReaction(AI_REACTION_HOSTILE);
-        ToCreature()->CallAssistance();
-    }
-
-    // delay offhand weapon attack to next attack time
-    if (haveOffhandWeapon())
-        resetAttackTimer(OFF_ATTACK);
-
-    if (meleeAttack)
-        SendMeleeAttackStart(victim);
-
-    // Let the pet know we've started attacking someting. Handles melee attacks only
-    // Spells such as auto-shot and others handled in WorldSession::HandleCastSpellOpcode
-    if (this->GetTypeId() == TYPEID_PLAYER)
-    {
-        Pet* playerPet = this->ToPlayer()->GetPet();
-
-        if (playerPet && playerPet->isAlive())
-            playerPet->AI()->OwnerAttacked(victim);
     }
 
     return true;
@@ -20105,69 +20104,107 @@ void Unit::ExitVehicle(Position const* exitPosition /*= NULL*/)
 
 void Unit::_ExitVehicle()
 {
+    if (!this)
+        return;
     /// It's possible m_vehicle is NULL, when this function is called indirectly from @VehicleJoinEvent::Abort.
     /// In that case it was not possible to add the passenger to the vehicle. The vehicle aura has already been removed
     /// from the target in the aforementioned function and we don't need to do anything else at this point.
     if (!m_vehicle)
         return;
 
-    Vehicle* vehicle = m_vehicle;
+    Position exit_to{ *this };
 
-    Position pos;
-    if (Position const* exitPosition = vehicle->GetExitPosition(this))
-        pos = *exitPosition;
-    else                                       // Exit position not specified
-        vehicle->GetBase()->GetPosition(&pos); // This should use passenger's current position, leaving it as it is now
-                                               // because we calculate positions incorrect (sometimes under map)
-
-    m_vehicle->RemovePassenger(this);
-
-    Player* player = ToPlayer();
-
-    // If player is on mouted duel and exits the mount should immediatly lose the duel
-    if (player && player->duel && player->duel->isMounted)
-        player->DuelComplete(DUEL_FLED);
-
-    // This should be done before dismiss, because there may be some aura removal
-    m_vehicle = NULL;
-
-    SetControlled(false, UNIT_STATE_ROOT); // SMSG_MOVE_FORCE_UNROOT, ~MOVEMENTFLAG_ROOT
-
-    AddUnitState(UNIT_STATE_MOVE);
-
-    if (player)
-        player->ResetFallingData(GetPositionZ());
-    else if (HasUnitMovementFlag(MOVEMENTFLAG_ROOT))
+    if (auto  vehicle = GetVehicle())
     {
+
+        if (auto exitPosition = vehicle->GetExitPosition(this))
+            exit_to = *exitPosition;
+
+        m_vehicle->RemovePassenger(this);
+
+
+        if (Player* player = ToPlayer())
+        {
+            player->ResetFallingData(GetPositionZ());
+            player->SetUnderACKmount();
+            player->SetSkipOnePacketForASH(true);
+
+            // If player is on mouted duel and exits the mount should immediatly lose the duel
+            if (player->duel && player->duel->isMounted)
+                player->DuelComplete(DUEL_FLED);
+
+            player->ResetFallingData(GetPositionZ());
+
+        }
+
+
+
+        // Wondi: Changed from 1 to 2000 because a vehicle could NOT execute events when player (owner) left a vehicle
+
+
+        if (auto vUnit = vehicle->GetBase())
+        {
+            if (vUnit->GetTypeId() == TYPEID_UNIT)
+                if (vUnit->HasUnitTypeMask(UNIT_MASK_MINION))
+                    if (auto vMinion = ((Minion*)vUnit))
+                        if (auto vOwner = vMinion->GetOwner())
+                            if (vOwner == this)
+                                if (auto vCreature = vUnit->ToCreature())
+                                    vCreature->DespawnOrUnsummon(2000);
+
+            if (HasUnitTypeMask(UNIT_MASK_ACCESSORY))
+            {
+                // Vehicle just died, we die too
+                if (vUnit->getDeathState() == JUST_DIED)
+                    setDeathState(JUST_DIED);
+                else
+                    ToTempSummon()->UnSummon(2100); // Approximation
+            }
+        }
+
+    }
+    else
+        RemoveAurasByType(SPELL_AURA_CONTROL_VEHICLE);
+
+    // because we calculate positions incorrect (sometimes under map)
+
+
+    m_vehicle = NULL;
+    /*
+    We're done with the vehicle.
+    */
+    float height = exit_to.GetPositionZ();
+
+
+    if (HasUnitMovementFlag(MOVEMENTFLAG_ROOT) || HasUnitState(UNIT_STATE_ROOT))
+    {
+        ClearUnitState(UNIT_STATE_ROOT);
+
+        //TC_LOG_ERROR("sql.sql", "sending remove root : %u %u", HasUnitMovementFlag(MOVEMENTFLAG_ROOT), HasUnitState(UNIT_STATE_ROOT));
+
         WorldPacket data(SMSG_SPLINE_MOVE_UNROOT, 8);
         data.append(GetPackGUID());
         SendMessageToSet(&data, false);
     }
 
-    float height = pos.GetPositionZ();
+    SetControlled(false, UNIT_STATE_ROOT);      // SMSG_MOVE_FORCE_UNROOT, ~MOVEMENTFLAG_ROOT
+    AddUnitState(UNIT_STATE_MOVE);
 
-    Movement::MoveSplineInit init(this);
-    init.MoveTo(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ());
-    init.SetFacing(GetOrientation());
-    init.SetTransportExit();
-    init.Launch();
 
-    if (player)
-        player->ResummonPetTemporaryUnSummonedIfAny();
+        Movement::MoveSplineInit init(this);
+        init.MoveTo(exit_to.GetPositionX(), exit_to.GetPositionY(), height, false);
 
-    if (vehicle->GetBase()->HasUnitTypeMask(UNIT_MASK_MINION) && vehicle->GetBase()->GetTypeId() == TYPEID_UNIT)
-        if (((Minion*)vehicle->GetBase())->GetOwner() == this)
-            vehicle->GetBase()->ToCreature()->DespawnOrUnsummon(1);
+       // TC_LOG_ERROR("sql.sql", "exiting position: %f %f %f %f", exit_to.GetPositionX(), exit_to.GetPositionY(), exit_to.GetPositionZ(), exit_to.GetOrientation());
 
-    if (HasUnitTypeMask(UNIT_MASK_ACCESSORY))
-    {
-        // Vehicle just died, we die too
-        if (vehicle->GetBase()->getDeathState() == JUST_DIED)
-            setDeathState(JUST_DIED);
-        // If for other reason we as minion are exiting the vehicle (ejected, master dismounted) - unsummon
-        else
-            ToTempSummon()->UnSummon(2000); // Approximation
-    }
+        if (auto m = GetMap())
+            if (GetTypeId() == TYPEID_UNIT)
+                if (!CanFly())
+                    if (height > m->GetWaterOrGroundLevel(exit_to.GetPositionX(), exit_to.GetPositionY(), exit_to.GetPositionZ(), &height) + 0.1f)
+                        init.SetFall();
+
+        init.SetFacing(GetOrientation());
+        init.SetTransportExit();
+        init.Launch();
 }
 
 void Unit::BuildMovementPacket(ByteBuffer *data) const

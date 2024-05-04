@@ -110,7 +110,7 @@ void CreatureAI::DoZoneInCombat(Creature* creature /*= NULL*/, float maxRangeToN
 
     if (!creature->HasReactState(REACT_PASSIVE) && !creature->getVictim())
     {
-       // TC_LOG_ERROR("misc", "DoZoneInCombat called for creature that has empty threat list (creature entry = %u)", creature->GetEntry());
+        TC_LOG_DEBUG("misc", "DoZoneInCombat called for creature that has empty threat list (creature entry = %u)", creature->GetEntry());
         return;
     }
 
@@ -283,7 +283,7 @@ bool CreatureAI::UpdateVictim()
         if (!me->HasUnitState(UNIT_STATE_CASTING))
             if (auto victim = me->SelectVictim())
             {
-                if (victim = me->getVictim())
+                if (victim != me->getVictim())
                     AttackStart(victim);
                 return me->getVictim();
             }

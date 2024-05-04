@@ -28,15 +28,33 @@
 
 void UnitAI::AttackStart(Unit* victim)
 {
-    if (victim && me->Attack(victim, true))
+    if (!victim)
+        return;
+    if (!me)
+        return;
+    if (!me->IsInWorld())
+        return;
+
+    if (victim != me->getVictim())
     {
-        // Clear distracted state on attacking
-        if (me->HasUnitState(UNIT_STATE_DISTRACTED))
+        if (!me->getThreatManager().getThreat(victim, false))
+            me->AddThreat(victim, 1.0f);
+
+
+        if (auto info = me->GetCharmInfo())
+            info->SetIsCommandAttack(true);
+
+        if (auto target = me->getThreatManager().getHostilTarget())
         {
-            me->ClearUnitState(UNIT_STATE_DISTRACTED);
-            me->GetMotionMaster()->Clear();
+            if (me->Attack(target, true))
+                if (auto m = me->GetMotionMaster())
+                    m->MoveChase(target);
         }
-        me->GetMotionMaster()->MoveChase(victim);
+
+        if (victim)
+            if (me->Attack(victim, true))
+                if (auto m = me->GetMotionMaster())
+                m->MoveChase(victim);
     }
 }
 
