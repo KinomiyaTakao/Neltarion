@@ -25,11 +25,15 @@ if (UNIX)
   endif()
 endif()
 
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.16)
 cmake_policy(SET CMP0005 OLD)
 if(POLICY CMP0043)
   cmake_policy(SET CMP0043 OLD) # Disable 'Ignore COMPILE_DEFINITIONS_<Config> properties'
 endif(POLICY CMP0043)
+
+if(POLICY CMP0074)
+  cmake_policy(SET CMP0074 NEW) # find_package() uses <PackageName>_ROOT variables
+endif()
 
 # add this options before PROJECT keyword
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)

@@ -1,0 +1,1 @@
+UPDATE `quest_template` SET `RewardSpell`='0', `RewardSpellCast`='68639' WHERE (`Id`='14375');
