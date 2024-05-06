@@ -37,3 +37,8 @@ INSERT INTO `creature_text` (`entry`,`groupid`,`id`,`text`,`type`,`language`,`pr
 (44806,2,0,'Oh, like you coulda done any better.',12,0,100,0,0,0,'Comment'),
 (44806,3,0,'Right then. I hate long plane rides. So I\'mma gonna kick in the after-market burners and ignite our entire fuel supply in one go.',12,0,100,0,0,0,'Comment'),
 (44806,4,0,'Whatever yeh do... Don\'t. Black. Out!',12,0,100,0,0,0,'Comment');
+
+DELETE FROM `npc_spellclick_spells` WHERE npc_entry IN (50262,50266);
+INSERT INTO `npc_spellclick_spells` (`npc_entry`, `spell_id`, `cast_flags`, `user_type`) VALUES
+(50262,93320,2,0),
+(50266,63313,1,0);
