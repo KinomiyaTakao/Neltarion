@@ -87,7 +87,7 @@ void CreatureAI::DoZoneInCombat(Creature* creature /*= NULL*/, float maxRangeToN
     Map* map = creature->GetMap();
     if (!map->IsDungeon())                                  //use IsDungeon instead of Instanceable, in case battlegrounds will be instantiated
     {
-        TC_LOG_ERROR("misc", "DoZoneInCombat call for map that isn't an instance (creature entry = %d)", creature->GetTypeId() == TYPEID_UNIT ? creature->ToCreature()->GetEntry() : 0);
+        TC_LOG_DEBUG("misc", "DoZoneInCombat call for map that isn't an instance (creature entry = %d)", creature->GetTypeId() == TYPEID_UNIT ? creature->ToCreature()->GetEntry() : 0);
         return;
     }
 
@@ -283,7 +283,7 @@ bool CreatureAI::UpdateVictim()
         if (!me->HasUnitState(UNIT_STATE_CASTING))
             if (auto victim = me->SelectVictim())
             {
-                if (victim = me->getVictim())
+                if (victim != me->getVictim())
                     AttackStart(victim);
                 return me->getVictim();
             }
