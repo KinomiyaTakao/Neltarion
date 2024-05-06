@@ -1,14 +1,56 @@
 /*batlla por guilneas*/
 DELETE FROM `smart_scripts`  WHERE `entryorguid` = 38218;
+DELETE FROM `smart_scripts`  WHERE `entryorguid` = 38426;
 DELETE FROM `smart_scripts`  WHERE `entryorguid` = 38474;
 DELETE FROM `smart_scripts`  WHERE `entryorguid` = 38470;
 DELETE FROM `smart_scripts`  WHERE `entryorguid` = 38553;
+DELETE FROM `smart_scripts`  WHERE `entryorguid` = 38331;
+DELETE FROM `smart_scripts`  WHERE `entryorguid` = 38424;
+DELETE FROM `smart_scripts`  WHERE `entryorguid` = -300030;
+DELETE FROM `smart_scripts`  WHERE `entryorguid` = -300031;
+DELETE FROM `smart_scripts`  WHERE `entryorguid` = -300032;
+DELETE FROM `smart_scripts`  WHERE `entryorguid` = -300033;
+DELETE FROM `smart_scripts`  WHERE `entryorguid` = -300034;
+DELETE FROM `smart_scripts`  WHERE `entryorguid` = -300035;
+DELETE FROM `smart_scripts`  WHERE `entryorguid` = -300036;
+DELETE FROM `smart_scripts`  WHERE `entryorguid` = -300037;
+DELETE FROM `smart_scripts`  WHERE `entryorguid` = -300038;
+DELETE FROM `smart_scripts`  WHERE `entryorguid` = -300039;
+DELETE FROM `smart_scripts`  WHERE `entryorguid` = -300040;
+DELETE FROM `smart_scripts`  WHERE `entryorguid` = -300041;
+DELETE FROM `smart_scripts`  WHERE `entryorguid` = -300042;
+DELETE FROM `smart_scripts`  WHERE `entryorguid` = 3842600 AND `source_type`=9;
 DELETE FROM `creature`  WHERE `guid` = 186642;
 DELETE FROM `creature`  WHERE `guid` = 186641;
 DELETE FROM `creature`  WHERE `guid` = 186494;
 DELETE FROM `creature`  WHERE `guid` = 186494;
 DELETE FROM `creature_text`  WHERE `entry` = 38218;
 DELETE FROM `creature_text`  WHERE `entry` = 38331;
+
+DELETE FROM `waypoints`  WHERE `entry` = 3842600;
+DELETE FROM `waypoints`  WHERE `entry` = 3842601;
+DELETE FROM `waypoints`  WHERE `entry` = 3842400;
+DELETE FROM `waypoints`  WHERE `entry` = 3842401;
+DELETE FROM `waypoints`  WHERE `entry` = 3842402;
+DELETE FROM `waypoints`  WHERE `entry` = 3842500;
+DELETE FROM `waypoints`  WHERE `entry` = 3842501;
+DELETE FROM `waypoints`  WHERE `entry` = 3842502;
+DELETE FROM `waypoints`  WHERE `entry` = 3842503;
+
+DELETE FROM `creature`  WHERE `guid` = 300030 AND `id`=38424;
+DELETE FROM `creature`  WHERE `guid` = 300031 AND `id`=38424;
+DELETE FROM `creature`  WHERE `guid` = 300032 AND `id`=38424;
+DELETE FROM `creature`  WHERE `guid` = 300039 AND `id`=38425;
+DELETE FROM `creature`  WHERE `guid` = 300040 AND `id`=38425;
+DELETE FROM `creature`  WHERE `guid` = 300036 AND `id`=38425;
+DELETE FROM `creature`  WHERE `guid` = 300041 AND `id`=38425;
+DELETE FROM `creature`  WHERE `guid` = 300042 AND `id`=38425;
+DELETE FROM `creature`  WHERE `guid` = 300035 AND `id`=38425;
+DELETE FROM `creature`  WHERE `guid` = 300034 AND `id`=38425;
+DELETE FROM `creature`  WHERE `guid` = 300037 AND `id`=38425;
+DELETE FROM `creature`  WHERE `guid` = 300038 AND `id`=38425;
+DELETE FROM `creature`  WHERE `guid` = 300033 AND `id`=38425;
+
 
 UPDATE `creature_template` SET `AIName`='', `ScriptName`='npc_krennan_aranas' WHERE (`entry`='38553');
 
