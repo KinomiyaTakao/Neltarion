@@ -975,8 +975,8 @@ void GameEventMgr::LoadHolidayDates()
 {
     uint32 oldMSTime = getMSTime();
 
-    //                                               0   1         2
-    QueryResult result = WorldDatabase.Query("SELECT id, date_id, date_value FROM holiday_dates");
+    //                                               0   1        2           3
+    QueryResult result = WorldDatabase.Query("SELECT id, date_id, date_value, holiday_duration FROM holiday_dates");
 
     if (!result)
     {
@@ -995,16 +995,25 @@ void GameEventMgr::LoadHolidayDates()
             TC_LOG_ERROR("sql.sql", "holiday_dates entry has invalid holiday id %u.", holidayId);
             continue;
         }
-        uint8 dateId = fields[1].GetUInt8();
+
+        uint8 dateId = fields[1].GetUInt32();
         if (dateId >= MAX_HOLIDAY_DATES)
         {
             TC_LOG_ERROR("sql.sql", "holiday_dates entry has out of range date_id %u.", dateId);
             continue;
         }
         entry->Date[dateId] = fields[2].GetUInt32();
-        modifiedHolidays.insert(entry->Id);
-        ++count;
 
+        if (uint32 duration = fields[3].GetUInt32())
+            entry->Duration[0] = duration;
+
+        auto itr = std::lower_bound(modifiedHolidays.begin(), modifiedHolidays.end(), entry->Id);
+        if (itr == modifiedHolidays.end() || *itr != entry->Id)
+        {
+            modifiedHolidays.insert(itr, entry->Id);
+        }
+
+        ++count;
     } while (result->NextRow());
 
     TC_LOG_INFO("server.loading", ">> Loaded %u holiday dates in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
