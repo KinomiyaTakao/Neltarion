@@ -20135,7 +20135,7 @@ void Unit::_ExitVehicle()
     AddUnitState(UNIT_STATE_MOVE);
 
     if (player)
-        player->SetFallInformation(0, GetPositionZ());
+        player->ResetFallingData(GetPositionZ());
     else if (HasUnitMovementFlag(MOVEMENTFLAG_ROOT))
     {
         WorldPacket data(SMSG_SPLINE_MOVE_UNROOT, 8);
