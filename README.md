@@ -3,13 +3,14 @@
 
 
 modern Setup, confirmed with successful compile.
-
+x64
 - MariaDB 10.4: https://www.filehorse.com/download-mariadb-32/42276/
-- Openssl 1.0.2u: (64) https://www.filehorse.com/download-openssl-64/45958/
+- Openssl 1.0.2u: (https://mega.nz/file/NbJClBYT#JOjqVF_Kx0pRSktB99UFTkx0X0I3uUlDdsm8XGk7WoY)
 - Cmake 3.25.2(required to specify visual studio 2019): https://github.com/Kitware/CMake/releases/download/v3.25.2/cmake-3.25.2-windows-x86_64.msi
 - Visual Studio 2019 (16):  https://visualstudio.microsoft.com/downloads/
-- Boost ≥ 1.74.0_msvc 14.2
-- 
+- Boost ≥ 1.74.0_msvc 14.2: https://boost.teeks99.com/bin/1.74.0/boost_1_74_0-msvc-14.2-32.exe
+- Mysql 5.7: https://www.filehorse.com/download-mysql/29931/
+  
 Map data is specialized for Project Neltharion.
 - Tree collisions
 - Strand of the Ancients Gates behave properly
